@@ -83,6 +83,15 @@ eq(parsed.drafts.map((d) => d.accountId).every((id) => id === wechat), true, '�
 eq(parsed.drafts.every((d) => d.type === 'expense'), true, '都是支出');
 eq(new Set(parsed.drafts.map((d) => d.fingerprint)).size, 3, '三笔指纹互不相同（不会被去重吃掉）');
 
+// 没写时间 → 落到当天 12:00，而不是「现在几点了」（半夜记「早饭12」不能变成早饭在 23:50）
+const midnight = new Date(2026, 8, 28, 23, 50, 0);
+const noTime = JZ.parseInput('早饭12', { now: midnight, categories: CATS, accounts: ACCTS });
+eq(parts(new Date(noTime.drafts[0].occurredAt)), { y: 2026, m: 9, d: 28, h: 12, min: 0 }, '没写时间 → 当天中午 12:00');
+eq(noTime.drafts[0].dateExplicit, false, '没写时间 → 标记时间不确定（界面要问一句）');
+const withTime = JZ.parseInput('晚上7点 打车25', { now: midnight, categories: CATS, accounts: ACCTS });
+eq(parts(new Date(withTime.drafts[0].occurredAt)), { y: 2026, m: 9, d: 28, h: 19, min: 0 }, '晚上7点 = 19:00');
+eq(withTime.drafts[0].dateExplicit, true, '写了时间 → 不再标不确定');
+
 eq(JZ.parseInput('本月超过200元的账单', { now, categories: CATS }).kind, 'query', '查询意图');
 eq(JZ.parseInput('本月超过200元的账单', { now, categories: CATS }).query.minMinor, 20000, '查询阈值来自本地抽取');
 eq(JZ.parseInput('本月超过200元的账单', { now, categories: CATS }).query.rangeLabel, 'current_month', '查询范围');

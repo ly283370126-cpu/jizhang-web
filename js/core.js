@@ -207,6 +207,9 @@
   const WEEKDAY = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 7, '天': 7 };
 
   function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+  /** 没写时间时的中性默认：当天 12:00（与 Swift 侧 DateParser.defaultHour 同一条规则）。
+   *  落「当前时刻」的话，半夜十一点记一句「早饭12」会被记成早饭发生在 23:50。 */
+  function defaultNoon(d) { const x = startOfDay(d); x.setHours(12, 0, 0, 0); return x; }
   function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
   /** 周一为一周之始 */
   function mondayOf(d) {
@@ -480,13 +483,14 @@
       if (!units.length) continue;
       const verdict = judge(segment, judgeOpts);
       const dateInfo = parseDate(segment, now);
+      const when = dateInfo ? dateInfo.date : defaultNoon(now);
       for (const amount of units) {
-        const fingerprint = dedupeKey(dateInfo ? dateInfo.date : now, amount.minor, verdict.type, extractMerchant(segment) || segment);
+        const fingerprint = dedupeKey(when, amount.minor, verdict.type, extractMerchant(segment) || segment);
         drafts.push({
           id: 'd-' + Math.random().toString(36).slice(2, 10),
           type: verdict.type,
           minor: amount.minor,
-          occurredAt: (dateInfo ? dateInfo.date : now).toISOString(),
+          occurredAt: when.toISOString(),
           dateExplicit: !!(dateInfo && dateInfo.explicit),
           categoryId: verdict.categoryId,
           accountId: verdict.accountId,

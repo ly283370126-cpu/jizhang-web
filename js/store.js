@@ -124,6 +124,14 @@
     }
 
     function memory() { return load().memory; }
+    /** 忘掉一条记性（用户在「记性清单」里点 ✕） */
+    function forget(merchant) {
+      const data = load();
+      if (!(merchant in data.memory)) return { ok: false, detail: '没有这条' };
+      delete data.memory[merchant];
+      persist();
+      return { ok: true };
+    }
     function categories() { return load().categories; }
     function accounts() { return load().accounts; }
 
@@ -132,7 +140,9 @@
       if (!minor || minor <= 0) { data.budget = null; persist(); return null; }
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
+      // 结束取「本月最后一天的 23:59:59.999」——原来取次月 1 日 0 点，
+      // 会让「本月还剩几天」多算一天（把下月 1 日也当成预算日）
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
       data.budget = { minor, start: start.toISOString(), end: end.toISOString() };
       persist();
       return data.budget;
@@ -176,7 +186,7 @@
 
     return {
       load: stateOf, all, addTransactions, removeTransaction, updateTransaction,
-      learn, memory, categories, accounts, setBudget, budget, settings, setSettings,
+      learn, memory, forget, categories, accounts, setBudget, budget, settings, setSettings,
       clearAll, exportCsv, defaults: clone
     };
   }

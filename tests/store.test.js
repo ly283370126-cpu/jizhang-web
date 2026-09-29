@@ -85,9 +85,26 @@ function tx(overrides) {
   const store = createStore(fakeStorage());
   const budget = store.setBudget(300000);
   eq(budget.minor, 300000, '预算 3000 元');
-  eq(new Date(budget.start).getMonth(), new Date(budget.end).getMonth() - 1 >= 0 ? new Date(budget.start).getMonth() : new Date(budget.start).getMonth(), '预算落在本月');
+  // 关键：预算最后一天是「本月最后一天 23:59」，不是次月 1 日 —— 否则剩余天数会多算一天
+  const end = new Date(budget.end);
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  eq(end.getDate(), lastDay, '预算结束落在本月最后一天');
+  eq(end.getMonth(), now.getMonth(), '结束时间还在本月');
+  const daysLeft = lastDay - now.getDate() + 1;
+  const status = JZ.budgetStatus(budget, [], now);
+  eq(status.daysRemaining, daysLeft, '本月还剩 ' + daysLeft + ' 天（含今天）');
   store.setBudget(0);
   eq(store.budget(), null, '设成 0 等于取消预算');
+}
+
+// ── 忘掉一条记性 ────────────────────────────────────────────
+{
+  const store = createStore(fakeStorage());
+  store.learn('奈雪', 'c-food');
+  eq(store.forget('奈雪').ok, true, '忘掉已存在的记性');
+  eq(store.memory(), {}, '记性清单空了');
+  eq(store.forget('奈雪').ok, false, '再忘一次返回失败');
 }
 
 // ── 导出 CSV ────────────────────────────────────────────────
